@@ -10,7 +10,7 @@ app = Flask(__name__)
 # Configuración
 # ──────────────────────────────────────────────────────────────────────────────
 
-+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise RuntimeError("Falta la variable de entorno OPENAI_API_KEY. Cárgala en .env (local) o en el panel del proveedor (Render/Railway).")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
