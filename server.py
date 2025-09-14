@@ -20,6 +20,8 @@ OPENAI_URL = os.getenv("OPENAI_URL", "https://api.openai.com/v1/chat/completions
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "20"))
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.1"))
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "600"))
+MAX_TURNS_PER_USER = int(os.getenv("MAX_TURNS_PER_USER", "8"))
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Conocimiento (resumen curado) - SOLO de "Te Devuelvo"
