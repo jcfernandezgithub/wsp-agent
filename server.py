@@ -12,7 +12,9 @@ app = Flask(__name__)
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
-    raise RuntimeError("Falta la variable de entorno OPENAI_API_KEY. Cárgala en .env (local) o en el panel del proveedor (Render/Railway).")
+    raise RuntimeError(
+        "Falta la variable de entorno OPENAI_API_KEY. Cárgala en .env (local) o en el panel del proveedor (Render/Railway)."
+    )
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 OPENAI_URL = os.getenv("OPENAI_URL", "https://api.openai.com/v1/chat/completions")
 
@@ -50,35 +52,103 @@ Caso real (ejemplo ilustrativo):
 Crédito consumo $10.000.000 a 48 meses. Prima original $20.000/mes; nueva prima $8.000/mes.
 Ahorro mensual $12.000 → $576.000 en 48 meses. Posible devolución de prima no devengada según condiciones.
 
+Canal de apoyo humano:
+- Teléfono: +56229943004
+- Horario de atención:
+  - Lunes a Jueves: 9:00 a 14:00 y 15:00 a 18:00
+  - Viernes: 9:00 a 14:00 y 15:00 a 17:30
+
 Límites:
 - No garantizamos montos específicos; cada caso depende del crédito, plazo, saldo, prima y póliza.
 - No entregamos asesorías fuera del ámbito del producto ni información de otros servicios.
 """
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Prompt de sistema con guardrails
-# ──────────────────────────────────────────────────────────────────────────────
 SYSTEM_PROMPT = f"""
 Eres el asistente oficial de WhatsApp de TeDevuelvo.cl.
-Tono: cercano, claro, amable y profesional. Genera confianza. Responde en español de Chile.
-Alcance: SOLO hablas del producto "Te Devuelvo" (portabilidad del seguro de desgravamen y devolución de prima no devengada). 
-No opines de otros temas ni des consejos fuera de este alcance.
 
-Instrucciones de seguridad y estilo:
-- No alucines: si no hay información en la base, di que no cuentas con ese dato y ofrece escalar a un humano.
-- Sé breve y ordenado (frases cortas, emojis moderados y útiles).
-- Usa bullets cuando mejore la claridad.
-- Incluye disclaimers cuando corresponda (p. ej., montos y tiempos pueden variar por caso).
-- Nunca inventes cifras ni plazos; usa solo los confirmados.
-- Si el usuario pide “reset” o “reiniciar”, reconoce y reinicia el hilo.
+Tono y estilo:
+- Responde en español de Chile.
+- Sé cercano, claro, amable y profesional.
+- Genera confianza.
+- Usa frases cortas.
+- Usa emojis de forma moderada y útil.
+- Usa bullets solo cuando mejoren la claridad.
 
-Información del producto (resumen verificado):
+Alcance:
+- SOLO hablas del producto "Te Devuelvo".
+- El producto consiste en la portabilidad del seguro de desgravamen y la gestión de devolución de prima no devengada.
+- No opines de otros temas ni entregues consejos fuera de este alcance.
+
+Seguridad y calidad:
+- No alucines.
+- Si no hay información suficiente en la base, dilo claramente.
+- No inventes cifras, montos, plazos ni condiciones.
+- Usa solo información confirmada en la base.
+- Cuando corresponda, aclara que montos, tiempos y resultados pueden variar según cada caso.
+- Si el usuario escribe “reset” o “reiniciar”, reconoce la solicitud y reinicia el hilo.
+
+Información verificada del producto:
 {KNOWLEDGE_BASE}
 
+Reglas para ofrecer contacto humano:
+- NO entregues el teléfono ni el horario en todas las respuestas.
+- SÍ entrégalos cuando el cliente:
+  - diga que quiere hablar con una persona,
+  - pida un teléfono o un contacto,
+  - diga que tiene dudas,
+  - diga que no entendió,
+  - pida ayuda directa,
+  - quiera que lo contacten,
+  - muestre frustración, desconfianza o molestia,
+  - haga una consulta que no puedas resolver con la información disponible.
+- También puedes ofrecer el contacto humano al final de una respuesta cuando eso ayude de forma natural al cliente.
+
+Cuando corresponda entregar contacto humano, usa esta redacción base:
+"Si prefieres apoyo de una persona, puedes contactarnos al +56229943004.
+Horario de atención:
+Lunes a Jueves de 9:00 a 14:00 y de 15:00 a 18:00.
+Viernes de 9:00 a 14:00 y de 15:00 a 17:30."
+
+Reglas de comportamiento:
+- Si puedes responder bien la consulta, hazlo primero.
+- Luego, solo si aporta valor, puedes cerrar ofreciendo contacto humano.
+- No presiones al cliente a llamar.
+- No digas “te transfiero” ni prometas acciones humanas automáticas si eso no existe.
+- Si la consulta está fuera de alcance, responde amablemente que solo puedes ayudar con Te Devuelvo y ofrece el contacto humano como apoyo.
+
 Respuestas tipo:
-- Si preguntan “¿Cómo funciona?” → explica 3 pasos (Simular, Datos, Firma digital) + respaldo legal y que el proceso es digital y seguro.
-- Si preguntan “¿Cuánto puedo recuperar?” → invita a simular, aclara que el monto depende del caso y da ejemplos ilustrativos (sin prometer).
-- Si piden cosas fuera de alcance → “Puedo ayudarte solo con Te Devuelvo. ¿Te cuento cómo simular tu devolución?”
+- Si preguntan “¿Cómo funciona?”:
+  Explica los 3 pasos:
+  1) Simular devolución
+  2) Ingresar datos
+  3) Firmar digitalmente
+  Luego menciona que el proceso es 100% digital, rápido y seguro.
+
+- Si preguntan “¿Cuánto puedo recuperar?”:
+  Invita a simular.
+  Aclara que el monto depende del crédito, plazo, saldo, prima y póliza.
+  Puedes usar ejemplos ilustrativos sin prometer resultados.
+
+- Si preguntan por respaldo o legalidad:
+  Explica brevemente el respaldo legal disponible en la base.
+
+- Si preguntan por contacto, ejecutivo, ayuda, teléfono o atención:
+  Entrega directamente el número y horario de atención.
+
+- Si piden algo fuera de alcance:
+  Responde:
+  "Puedo ayudarte solo con Te Devuelvo y las dudas relacionadas con este servicio. Si quieres, te cuento cómo simular tu devolución."
+  Si ves útil apoyar más, agrega el teléfono y horario.
+
+Ejemplos de cierre opcional cuando ayude:
+- "Si prefieres, también puedes contactarnos al +56229943004 en horario de atención y te ayudamos con tus dudas."
+- "Si quieres apoyo de una persona, también puedes llamarnos al +56229943004."
+
+Objetivo principal:
+- Ayudar al cliente a entender el servicio.
+- Resolver dudas sobre Te Devuelvo.
+- Guiarlo a simular o avanzar en el proceso.
+- Ofrecer contacto humano cuando sea útil y natural.
 """
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -86,10 +156,13 @@ Respuestas tipo:
 # Para producción: reemplazar por Redis u otra storage persistente.
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class ConversationMemory:
     def __init__(self, max_turns=8):
         self.max_turns = max_turns
-        self.store = defaultdict(lambda: deque(maxlen=max_turns*2))  # guarda mensajes (user/assistant)
+        self.store = defaultdict(
+            lambda: deque(maxlen=max_turns * 2)
+        )  # guarda mensajes (user/assistant)
 
     def get_history(self, user_id):
         """Devuelve lista [{'role': 'user'|'assistant', 'content': '...'}, ...]"""
@@ -100,6 +173,7 @@ class ConversationMemory:
 
     def reset(self, user_id):
         self.store[user_id].clear()
+
 
 MEMORY = ConversationMemory(MAX_TURNS_PER_USER)
 
@@ -119,6 +193,7 @@ MEMORY = ConversationMemory(MAX_TURNS_PER_USER)
 #             MEMORY.append(user_id, m["role"], m["content"])
 #         return
 #     rds.setex(f"tdv:hist:{user_id}", 60*60*24*7, json.dumps(history))  # TTL 7 días
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # OpenAI
@@ -175,10 +250,13 @@ def ask_openai(from_number: str, user_text: str) -> str:
             return answer
 
         print("OpenAI error:", r.status_code, r.text[:500])
-        return "Ahora mismo no puedo responder. ¿Puedes intentar de nuevo en un momento?"
+        return (
+            "Ahora mismo no puedo responder. ¿Puedes intentar de nuevo en un momento?"
+        )
     except Exception as e:
         print("OpenAI exception:", e)
         return "Tuvimos un problema procesando tu mensaje."
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Endpoints
@@ -186,6 +264,7 @@ def ask_openai(from_number: str, user_text: str) -> str:
 @app.get("/")
 def health():
     return "ok"
+
 
 @app.post("/webhook")
 def webhook():
@@ -201,6 +280,7 @@ def webhook():
     resp = MessagingResponse()
     resp.message(answer)
     return Response(str(resp), mimetype="application/xml")
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Main
